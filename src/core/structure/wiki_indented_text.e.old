@@ -1,0 +1,71 @@
+note
+	description: "Summary description for {WIKI_INDENTED_TEXT}."
+	author: ""
+	date: "$Date$"
+	revision: "$Revision$"
+
+class
+	WIKI_INDENTED_TEXT
+
+inherit
+	WIKI_COMPOSITE [WIKI_INDENTED_TEXT]
+		redefine
+			process
+		end
+
+	DEBUG_OUTPUT
+
+create
+	make
+
+feature {NONE} -- Initialization
+
+	make (s: STRING)
+		local
+			v: like level
+		do
+			initialize
+			from
+				v := 1
+			until
+				s.item (v) /= ':'
+			loop
+				v := v + 1
+			end
+			level := v - 1
+			text := s.substring (v, s.count)
+		end
+
+feature -- Access
+
+	text: WIKI_STRING
+
+	level: NATURAL_8
+
+feature -- Status report
+
+	is_empty: BOOLEAN
+		do
+			Result := text.is_empty
+		end
+
+feature -- Visitor
+
+	process (a_visitor: WIKI_VISITOR)
+		do
+			a_visitor.process_indented_text (Current)
+		end
+
+feature -- Status report
+
+	debug_output: STRING
+			-- String that should be displayed in debugger to represent `Current'.
+		do
+			create Result.make_from_string (text.text)
+			if Result.count > 10 then
+				Result.keep_head (7)
+				Result.append_string ("...")
+			end
+		end
+
+end
