@@ -13,4 +13,11 @@ inherit
 create
 	make_item
 
+note
+	copyright: "2011-2012, Jocelyn Fiat"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	source: "[
+			Jocelyn Fiat
+			Contact: http://about.jocelynfiat.net/
+		]"
 end

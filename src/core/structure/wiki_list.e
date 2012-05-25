@@ -218,5 +218,12 @@ feature -- Status report
 invariant
 	valid_parent: attached {WIKI_LIST} parent as p implies (p.level < level and p.description.same_string (description.substring (1, level - 1)))
 
+note
+	copyright: "2011-2012, Jocelyn Fiat"
+	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
+	source: "[
+			Jocelyn Fiat
+			Contact: http://about.jocelynfiat.net/
+		]"
 end
 
