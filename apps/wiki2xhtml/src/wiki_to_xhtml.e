@@ -30,6 +30,8 @@ feature {NONE} -- Initialization
 			l_save_to_file: detachable READABLE_STRING_GENERAL
 			s: STRING
 			l_args: ARRAYED_LIST [READABLE_STRING_32]
+			l_header_tpl, l_footer_tpl: detachable READABLE_STRING_GENERAL
+			tpl: STRING
 		do
 			create args
 			if attached args.argument_array as arr then
@@ -52,6 +54,16 @@ feature {NONE} -- Initialization
 							i := i + 1
 							if arr.valid_index (i) then
 								l_append_to_file := arr[i]
+							end
+						elseif arr[i].same_string_general ("--header") then
+							i := i + 1
+							if arr.valid_index (i) then
+								l_header_tpl := arr[i]
+							end
+						elseif arr[i].same_string_general ("--footer") then
+							i := i + 1
+							if arr.valid_index (i) then
+								l_footer_tpl := arr[i]
 							end
 						end
 					else
@@ -79,10 +91,30 @@ feature {NONE} -- Initialization
 					elseif attached p.extension as ext then
 						create s.make (1024)
 						create {WIKI_XHTML_GENERATOR} vis.make (s)
+						if attached p.entry as e then
+							create wp.make (e.utf_8_name, e.utf_8_name)
+						else
+							create wp.make ("Index", "index")
+						end
 
-						create wp.make ("Iron", "iron")
 						wp.get_structure (p)
 						wp.process (vis)
+
+						if l_header_tpl /= Void then
+							tpl := text_from_file (l_header_tpl)
+							if not tpl.is_empty then
+								tpl.replace_substring_all ("$WIKIPAGENAME", wp.title)
+							end
+							s.prepend (tpl)
+						end
+						if l_footer_tpl /= Void then
+							tpl := text_from_file (l_footer_tpl)
+							if not tpl.is_empty then
+								tpl.replace_substring_all ("$WIKIPAGENAME", wp.title)
+							end
+							s.append (tpl)
+						end
+
 						if l_append_to_file /= Void then
 							append_text_to (s, create {PATH}.make_from_string (l_append_to_file))
 							io.error.put_string ("Appended HTML to file " + l_append_to_file.as_string_8 + "%N")
@@ -124,6 +156,27 @@ feature {NONE} -- Initialization
 				f.close
 			else
 				io.error.put_string ("[ERROR] could not save to file!%N")
+			end
+		end
+
+	text_from_file (fn: READABLE_STRING_GENERAL): STRING
+		local
+			f: PLAIN_TEXT_FILE
+		do
+			create f.make_with_name (fn)
+			if f.exists and then f.is_access_readable then
+				f.open_read
+				from
+					create Result.make (1_024)
+				until
+					f.exhausted
+				loop
+					f.read_stream_thread_aware (1_024)
+					Result.append (f.last_string)
+				end
+				f.close
+			else
+				Result := ""
 			end
 		end
 
