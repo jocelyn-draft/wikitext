@@ -129,6 +129,18 @@ feature -- Template
 			end
 		end
 
+feature -- Tag
+
+	visit_code (a_code: WIKI_CODE)
+		do
+			a_code.text.process (Current)
+		end
+
+	visit_tag (a_tag: WIKI_TAG)
+		do
+			a_tag.text.process (Current)
+		end
+
 feature -- Links
 
 	visit_external_link (a_link: WIKI_EXTERNAL_LINK)

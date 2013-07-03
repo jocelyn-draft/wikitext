@@ -300,6 +300,32 @@ feature -- Template
 			set_next_output_appended
 		end
 
+feature -- Tag
+
+	visit_code (a_code: WIKI_CODE)
+		do
+			output (a_code.tag)
+			set_next_output_appended
+			if attached a_code.text as str then
+				str.process (Current)
+				set_next_output_appended
+			end
+			output ("</" + a_code.tag_name + ">")
+			set_next_output_appended
+		end
+
+	visit_tag (a_tag: WIKI_TAG)
+		do
+			output ("<" + a_tag.tag_name + ">")
+			set_next_output_appended
+			if attached a_tag.text as str then
+				str.process (Current)
+				set_next_output_appended
+			end
+			output ("</" + a_tag.tag_name + ">")
+			set_next_output_appended
+		end
+
 feature -- Links
 
 	visit_external_link (a_link: WIKI_EXTERNAL_LINK)

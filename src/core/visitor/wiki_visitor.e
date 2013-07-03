@@ -113,6 +113,20 @@ feature -- Template
 		deferred
 		end
 
+feature -- Tag	
+
+	visit_code (a_code: WIKI_CODE)
+		require
+			a_code_attached: a_code /= Void
+		deferred
+		end
+
+	visit_tag (a_tag: WIKI_TAG)
+		require
+			a_tag_attached: a_tag /= Void
+		deferred
+		end
+
 feature -- Links
 
 	visit_external_link (a_link: WIKI_EXTERNAL_LINK)

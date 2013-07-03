@@ -308,6 +308,27 @@ feature -- Template
 			end
 		end
 
+feature -- Tag
+
+	visit_code (a_code: WIKI_CODE)
+		local
+			n: READABLE_STRING_8
+		do
+			output ("<" + a_code.tag_name + ">")
+			a_code.text.process (Current)
+			output ("</" + a_code.tag_name + ">")
+		end
+
+	visit_tag (a_tag: WIKI_TAG)
+		local
+			n: READABLE_STRING_8
+		do
+			n := a_tag.tag_name
+			output ("<" + n + ">")
+			a_tag.text.process (Current)
+			output ("</" + n + ">")
+		end
+
 feature -- Links
 
 	visit_external_link (a_link: WIKI_EXTERNAL_LINK)

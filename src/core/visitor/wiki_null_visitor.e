@@ -86,6 +86,16 @@ feature -- Template
 		do
 		end
 
+feature -- Tag
+
+	visit_code (a_code: WIKI_CODE)
+		do
+		end
+
+	visit_tag (a_tag: WIKI_TAG)
+		do
+		end
+
 feature -- Links
 
 	visit_external_link (a_link: WIKI_EXTERNAL_LINK)

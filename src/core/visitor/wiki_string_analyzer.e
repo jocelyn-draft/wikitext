@@ -44,12 +44,12 @@ feature -- Processing
 	analyze_string (a_text: STRING; a_parts: WIKI_STRING_LIST)
 		local
 			i,n, m: INTEGER
-			p,q: INTEGER
+			p,q,r: INTEGER
 			c: CHARACTER
 			w_item: detachable WIKI_STRING_ITEM
 --			tpl: detachable ARRAYED_STACK [TUPLE [position: INTEGER; tpl: WIKI_TEMPLATE]]
 --			tok: STRING
-			s: STRING
+			t,s: STRING
 			s_last: STRING
 			s_link: detachable STRING
 			in_item: BOOLEAN
@@ -166,7 +166,34 @@ feature -- Processing
 					elseif safe_character (a_text, i + 1) = '/' then
 						s.extend (c)
 					else
-						s.extend (c)
+						p := next_end_of_tag_character (a_text, i + 1)
+						if p > 0 then
+							t := tag_name_from (a_text.substring (i, p))
+							q := next_closing_tag (a_text, t, p + 1)
+							if q > 0 then
+								r := next_end_of_tag_character (a_text, q + 1)
+								if r > 0 then
+									flush_buffer (a_parts, s)
+									if t.is_case_insensitive_equal_general ("code") then
+										create {WIKI_CODE} w_item.make (a_text.substring (i, p), a_text.substring (p + 1, q - 1))
+									elseif t.is_case_insensitive_equal_general ("nowiki") then
+										create {WIKI_RAW_STRING} w_item.make (a_text.substring (p + 1, q - 1))
+									else
+										create {WIKI_TAG} w_item.make (t, a_text.substring (p + 1, q - 1))
+									end
+									a_parts.add_element (w_item)
+									w_item.process (Current) -- Check recursion...							
+									w_item := Void
+									i := r
+								else
+									s.extend (c)
+								end
+							else
+								s.extend (c)
+							end
+						else
+							s.extend (c)
+						end
 					end
 				when '%'' then
 					--| Need fixes
@@ -290,6 +317,64 @@ feature -- Processing
 			end
 		end
 
+	next_end_of_tag_character (s: STRING; a_start: INTEGER): INTEGER
+		local
+			i,n: INTEGER
+			v: INTEGER
+		do
+			from
+				i := a_start
+				n := s.count
+			until
+				Result > a_start or i > n
+			loop
+				inspect s[i]
+				when '<' then
+					v := v + 1
+				when '>' then
+					if v = 0 then
+						Result := i
+					else
+						v := v - 1
+					end
+				else
+				end
+				i := i + 1
+			end
+		end
+
+	next_closing_tag (s: STRING; a_tag_name: READABLE_STRING_8; a_start: INTEGER): INTEGER
+		local
+--			i,n,p: INTEGER
+--			v: INTEGER
+		do
+			Result := s.substring_index ("</" + a_tag_name + ">", a_start)
+
+--			from
+--				v := 1
+--				i := a_start
+--				n := s.count
+--			until
+--				Result > a_start or i > n
+--			loop
+--				inspect s[i]
+--				when '<' then
+--					if s.valid_index (i + 1) and then s[i+1] = '/' then -- closing
+--						v := v - 1
+--					else
+--						v := v + 1
+--					end
+--					if v = 0 then
+--						Result := i
+--					else
+--						i := next_end_of_tag_character (s, i + 1)
+--					end
+--				else
+--				end
+--				i := i + 1
+--			end
+		end
+
 	wiki_style_kind (n: INTEGER): INTEGER
 		do
 			inspect n
@@ -327,6 +412,30 @@ feature -- Processing
 			else
 				create Result.make (s)
 			end
+		end
+
+feature {NONE} -- Implementation
+
+	tag_name_from (s: READABLE_STRING_8): STRING_8
+			-- Tag name from  inside of <...>
+			--| for instance ' abc def="geh"' will return abc
+		local
+			i,n,p: INTEGER
+		do
+			i := s.index_of (' ', 2)
+			n := s.index_of ('%T', 2)
+			if i = 0 then
+				i := n
+			elseif n /= Void then
+				i := i.min (n)
+			end
+			if i > 0 then
+				create Result.make_from_string (s.substring (2, i - 1))
+			else
+				create Result.make_from_string (s.substring (2, s.count - 1))
+			end
+			Result.left_adjust
+			Result.right_adjust
 		end
 
 note
