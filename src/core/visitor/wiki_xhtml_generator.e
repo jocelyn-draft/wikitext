@@ -44,7 +44,7 @@ feature -- Output
 
 	unset_next_output_require_newline
 		do
-			next_output_require_newline := True
+			next_output_require_newline := False
 		end
 
 	set_next_output_require_newline
@@ -121,6 +121,7 @@ feature -- Processing
 				output ("%N<h" + l_level.out + ">%N")
 				t.process (Current)
 				output ("</h" + l_level.out + ">%N")
+				unset_next_output_require_newline
 			else
 				output ("!!INVALID SECTION!!")
 			end
@@ -139,9 +140,10 @@ feature -- Processing
 			l_tag: READABLE_STRING_8
 		do
 			l_level := a_list.level
-			if a_list.count = 1 then
-				visit_composite (a_list)
-			else
+--			if a_list.count = 1 then
+--				output ("<" + l_tag + ">")
+--				visit_composite (a_list)
+--			else
 				unset_next_output_require_newline
 				list_level := l_level
 				if a_list.is_ordered_kind then
@@ -156,9 +158,12 @@ feature -- Processing
 					l_tag := "ul"
 				end
 				output ("<" + l_tag + ">")
+				unset_next_output_require_newline
 				visit_composite (a_list)
+				unset_next_output_require_newline
 				output ("</" + l_tag + ">%N")
-			end
+				unset_next_output_require_newline
+--			end
 		end
 
 	visit_list_item (a_list_item: WIKI_LIST_ITEM)
@@ -175,11 +180,12 @@ feature -- Processing
 			elseif a_list_item.is_definition_term_kind then
 				l_tag := "dt"
 			elseif a_list_item.is_definition_description_kind then
-				l_tag := "dd"
+				l_tag := "div"
 			else
 				l_tag := "li"
 			end
 			output ("<" + l_tag + ">")
+			unset_next_output_require_newline
 
 			if attached a_list_item.text as t then
 				t.process (Current)
@@ -191,6 +197,7 @@ feature -- Processing
 				l_def.process (Current)
 			end
 			visit_composite (a_list_item)
+			unset_next_output_require_newline
 			output ("</" + l_tag + ">%N")
 		end
 
