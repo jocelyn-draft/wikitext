@@ -33,7 +33,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_list_item (Current)
+			a_visitor.visit_list_item (Current)
 		end
 
 feature -- Status report

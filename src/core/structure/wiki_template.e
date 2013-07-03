@@ -18,8 +18,8 @@ feature {NONE} -- Initialization
 	make (s: STRING)
 		local
 			p: INTEGER
-			t: STRING
-			subs: LIST [STRING]
+--			t: STRING
+--			subs: LIST [STRING]
 		do
 			p := s.index_of ('|', 1)
 			if p > 0 then
@@ -42,7 +42,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_template (Current)
+			a_visitor.visit_template (Current)
 		end
 
 feature -- Status report
@@ -54,7 +54,7 @@ feature -- Status report
 		end
 
 note
-	copyright: "2011-2012, Jocelyn Fiat"
+	copyright: "2011-2013, Jocelyn Fiat"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

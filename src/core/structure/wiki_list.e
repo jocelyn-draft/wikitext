@@ -44,7 +44,8 @@ feature {NONE} -- Initialization
 		local
 			t: STRING
 			c: CHARACTER
-			n,p: INTEGER
+--			p,
+			n: INTEGER
 			v: like level
 		do
 			initialize
@@ -165,7 +166,7 @@ feature -- Element change
 		local
 			w, wp: WIKI_LIST
 			ve,vp: NATURAL_8
-			d: STRING
+--			d: STRING
 		do
 --			if attached {WIKI_LIST} e as l_list then
 				ve := e.level
@@ -204,7 +205,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_list (Current)
+			a_visitor.visit_list (Current)
 		end
 
 feature -- Status report
@@ -219,7 +220,7 @@ invariant
 	valid_parent: attached {WIKI_LIST} parent as p implies (p.level < level and p.description.same_string (description.substring (1, level - 1)))
 
 note
-	copyright: "2011-2012, Jocelyn Fiat"
+	copyright: "2011-2013, Jocelyn Fiat"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

@@ -30,7 +30,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_table_row (Current)
+			a_visitor.visit_table_row (Current)
 		end
 
 note

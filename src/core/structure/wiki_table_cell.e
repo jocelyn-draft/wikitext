@@ -28,7 +28,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_table_cell (Current)
+			a_visitor.visit_table_cell (Current)
 		end
 
 note

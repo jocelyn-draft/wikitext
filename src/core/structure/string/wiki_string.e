@@ -49,7 +49,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_string (Current)
+			a_visitor.visit_string (Current)
 		end
 
 feature -- Status report

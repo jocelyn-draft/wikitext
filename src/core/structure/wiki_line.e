@@ -51,7 +51,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_line (Current)
+			a_visitor.visit_line (Current)
 		end
 
 feature -- Status report

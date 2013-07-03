@@ -1,41 +1,28 @@
 note
-	description : "Objects that ..."
-	author      : "$Author$"
-	date        : "$Date$"
-	revision    : "$Revision$"
+	description: "Summary description for {WIKI_INDEX}."
+	author: ""
+	date: "$Date$"
+	revision: "$Revision$"
 
 class
-	WIKITEXT_READER
+	WIKI_INDEX
 
 create
 	make
 
 feature {NONE} -- Initialization
 
-	make
-			-- Initialize `Current'.
-		local
-			l_include_in_system: TUPLE [WIKI_NULL_VISITOR]
-		do
---			read_folder ("tests\eiffelstudio", "EiffelStudio")
-			read_folder ("tests\test", "Test")
---			read_folder ("tests\community", "Community")			
-		end
-
-	read_folder (a_dir: STRING; a_name: STRING)
+	make (a_name: READABLE_STRING_8; fn: PATH)
 		local
 			f: RAW_FILE
-			fn: FILE_NAME
 			s, t, k: STRING
 			ln, p: INTEGER
 			wb: detachable WIKI_BOOK
 			pwp, wp: detachable WIKI_PAGE
 		do
-			create fn.make_from_string (a_dir)
-			fn.set_file_name ("book.index")
-			create f.make (fn.string)
+			create f.make_with_path (fn)
 			if f.exists and f.is_readable then
-				create wb.make (a_name, a_dir)
+				create wb.make (a_name, fn.parent)
 				f.open_read
 				from
 					ln := 0
@@ -82,8 +69,17 @@ feature {NONE} -- Initialization
 				end
 				f.close
 			end
+			book := wb
+		end
+
+feature -- Access
+
+	book: detachable WIKI_BOOK
+
+	analyze
+		do
 			if
-				wb /= Void and then
+				attached book as wb and then
 				attached wb.pages as l_pages
 			then
 				from
@@ -91,25 +87,15 @@ feature {NONE} -- Initialization
 				until
 					l_pages.after
 				loop
-					l_pages.item.get_structure (wb)
+					l_pages.item.get_structure (wb.page_path (l_pages.item))
 					l_pages.forth
 				end
 			end
+
 		end
 
-feature -- Status
-
-feature -- Access
-
-feature -- Change
-
-feature {NONE} -- Implementation
-
-invariant
---	invariant_clause: True
-
 note
-	copyright: "2011-2012, Jocelyn Fiat"
+	copyright: "2011-2013, Jocelyn Fiat"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

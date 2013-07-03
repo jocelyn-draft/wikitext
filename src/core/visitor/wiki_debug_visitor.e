@@ -67,15 +67,33 @@ feature -- Output
 			level := v
 		end
 
-feature -- Processing
+feature -- Book processing
 
-	process_structure (a_structure: WIKI_STRUCTURE)
+	visit_book (a_book: WIKI_BOOK)
 		do
-			level := 0
-			process_composite (a_structure)
+			across
+				a_book.pages as c
+			loop
+				c.item.process (Current)
+			end
 		end
 
-	process_section (a_section: WIKI_SECTION)
+	visit_page (a_page: WIKI_PAGE)
+		do
+			if attached a_page.structure as st then
+				st.process (Current)
+			end
+		end
+
+feature -- Processing
+
+	visit_structure (a_structure: WIKI_STRUCTURE)
+		do
+			level := 0
+			visit_composite (a_structure)
+		end
+
+	visit_section (a_section: WIKI_SECTION)
 		local
 			l_level: like {WIKI_SECTION}.level
 		do
@@ -97,16 +115,16 @@ feature -- Processing
 			else
 				output ("!!INVALID SECTION")
 			end
-			process_composite (a_section)
+			visit_composite (a_section)
 		end
 
-	process_paragraph (a_paragraph: WIKI_PARAGRAPH)
+	visit_paragraph (a_paragraph: WIKI_PARAGRAPH)
 		do
 --			output("%N")
-			process_composite (a_paragraph)
+			visit_composite (a_paragraph)
 		end
 
-	process_list (a_list: WIKI_LIST)
+	visit_list (a_list: WIKI_LIST)
 		local
 			l_level: like {WIKI_LIST}.level
 		do
@@ -132,11 +150,11 @@ feature -- Processing
 				end
 
 			end
-			process_composite (a_list)
+			visit_composite (a_list)
 			reset_indexes (list_indexes, l_level + 1)
 		end
 
-	process_list_item (a_list_item: WIKI_LIST_ITEM)
+	visit_list_item (a_list_item: WIKI_LIST_ITEM)
 		local
 			l_level: like {WIKI_LIST}.level
 		do
@@ -169,14 +187,14 @@ feature -- Processing
 			then
 				l_def.process (Current)
 			end
-			process_composite (a_list_item)
+			visit_composite (a_list_item)
 			reset_indexes (list_indexes, l_level + 1)
 		end
 
-	process_preformatted_text (a_block: WIKI_PREFORMATTED_TEXT)
+	visit_preformatted_text (a_block: WIKI_PREFORMATTED_TEXT)
 		do
 			output ("----------")
-			process_composite (a_block)
+			visit_composite (a_block)
 			output ("----------")
 		end
 
@@ -197,7 +215,7 @@ feature -- Processing
 --			process_composite (a_text)
 --		end
 
-	process_line (a_line: WIKI_LINE)
+	visit_line (a_line: WIKI_LINE)
 		do
 			if not a_line.is_empty then
 				debug
@@ -211,14 +229,12 @@ feature -- Processing
 			end
 		end
 
-	process_line_separator (a_sep: WIKI_LINE_SEPARATOR)
+	visit_line_separator (a_sep: WIKI_LINE_SEPARATOR)
 		do
 			output (create {STRING}.make_filled ('-', 72))
 		end
 
-	process_string (a_string: WIKI_STRING)
-		local
-			s: STRING
+	visit_string (a_string: WIKI_STRING)
 		do
 			if attached a_string.parts as l_parts then
 				l_parts.process (Current)
@@ -230,13 +246,13 @@ feature -- Processing
 
 feature -- Strings
 
-	process_raw_string (a_raw_string: WIKI_RAW_STRING)
+	visit_raw_string (a_raw_string: WIKI_RAW_STRING)
 		do
 			output (a_raw_string.text)
 			set_next_output_appended
 		end
 
-	process_style (a_style: WIKI_STYLE)
+	visit_style (a_style: WIKI_STYLE)
 		local
 			k: STRING
 		do
@@ -262,7 +278,7 @@ feature -- Strings
 			set_next_output_appended
 		end
 
-	process_comment (a_comment: WIKI_COMMENT)
+	visit_comment (a_comment: WIKI_COMMENT)
 		do
 			output ("<!--Comment: " + a_comment.text +  " -->")
 			set_next_output_appended
@@ -270,7 +286,7 @@ feature -- Strings
 
 feature -- Template
 
-	process_template (a_template: WIKI_TEMPLATE)
+	visit_template (a_template: WIKI_TEMPLATE)
 		do
 			output ("{{TEMPLATE %"" + a_template.name + "%"")
 			set_next_output_appended
@@ -286,7 +302,7 @@ feature -- Template
 
 feature -- Links
 
-	process_external_link (a_link: WIKI_EXTERNAL_LINK)
+	visit_external_link (a_link: WIKI_EXTERNAL_LINK)
 		do
 			output ("EXTERNAL_LINK(url="+ a_link.url + ", %"")
 			set_next_output_appended
@@ -296,7 +312,7 @@ feature -- Links
 			set_next_output_appended
 		end
 
-	process_link (a_link: WIKI_LINK)
+	visit_link (a_link: WIKI_LINK)
 		do
 			output ("LINK("+ a_link.name + ", %"")
 			set_next_output_appended
@@ -306,7 +322,7 @@ feature -- Links
 			set_next_output_appended
 		end
 
-	process_image_link (a_link: WIKI_IMAGE_LINK)
+	visit_image_link (a_link: WIKI_IMAGE_LINK)
 		do
 			if a_link.inlined then
 				output ("IMAGE_LINK("+ a_link.name + ", %"")
@@ -325,7 +341,7 @@ feature -- Links
 			end
 		end
 
-	process_category_link (a_link: WIKI_CATEGORY_LINK)
+	visit_category_link (a_link: WIKI_CATEGORY_LINK)
 		do
 			if a_link.inlined then
 				output ("CATEGORY("+ a_link.name + ", %"")
@@ -339,7 +355,7 @@ feature -- Links
 			end
 		end
 
-	process_media_link (a_link: WIKI_MEDIA_LINK)
+	visit_media_link (a_link: WIKI_MEDIA_LINK)
 		do
 			output ("MEDIA("+ a_link.name + ", %"")
 			set_next_output_appended
@@ -351,17 +367,17 @@ feature -- Links
 
 feature -- Table
 
-	process_table (a_table: WIKI_TABLE)
+	visit_table (a_table: WIKI_TABLE)
 		do
-			process_composite (a_table)
+			visit_composite (a_table)
 		end
 
-	process_table_row (a_row: WIKI_TABLE_ROW)
+	visit_table_row (a_row: WIKI_TABLE_ROW)
 		do
-			process_composite (a_row)
+			visit_composite (a_row)
 		end
 
-	process_table_cell (a_cell: WIKI_TABLE_CELL)
+	visit_table_cell (a_cell: WIKI_TABLE_CELL)
 		do
 			a_cell.text.process (Current)
 		end
@@ -460,7 +476,7 @@ feature -- Implementation
 			end
 		end
 
-	process_composite (a_composite: WIKI_COMPOSITE [WIKI_ITEM])
+	visit_composite (a_composite: WIKI_COMPOSITE [WIKI_ITEM])
 		local
 			elts: like {WIKI_COMPOSITE [WIKI_ITEM]}.elements
 		do
@@ -480,7 +496,7 @@ feature -- Implementation
 		end
 
 note
-	copyright: "2011-2012, Jocelyn Fiat"
+	copyright: "2011-2013, Jocelyn Fiat"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

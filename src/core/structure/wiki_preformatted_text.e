@@ -31,7 +31,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_preformatted_text (Current)
+			a_visitor.visit_preformatted_text (Current)
 		end
 
 note

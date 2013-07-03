@@ -15,20 +15,59 @@ create
 
 feature {NONE} -- Initialization
 
-	make (n: STRING; p: like path)
+	make (n: READABLE_STRING_8; p: like path)
 		do
 			name := n
 			path := p
 			create pages.make (50)
 		end
 
+feature -- Visitor
+
+	process (a_visitor: WIKI_VISITOR)
+		do
+			a_visitor.visit_book (Current)
+		end
+
+	analyze
+		do
+			across
+				pages as c
+			loop
+				c.item.get_structure (page_path (c.item))
+			end
+		end
+
 feature -- Access
 
-	path: STRING
+	path: PATH
 
-	name: STRING
+	name: READABLE_STRING_8
 
 	pages: ARRAYED_LIST [WIKI_PAGE]
+
+	page_path (a_page: WIKI_PAGE): PATH
+		local
+			lst: LIST [READABLE_STRING_8]
+		do
+			Result := path
+			lst := a_page.src.split ('/')
+			from
+				lst.start
+				if
+					not lst.off and then
+					lst.item.same_string (name)
+				then
+					lst.forth
+				end
+			until
+				lst.after
+			loop
+				Result := Result.extended (lst.item)
+				lst.forth
+			end
+			Result := Result.appended_with_extension ("wiki")
+		end
 
 feature -- Element change
 
@@ -50,7 +89,7 @@ feature -- Status report
 		end
 
 note
-	copyright: "2011-2012, Jocelyn Fiat"
+	copyright: "2011-2013, Jocelyn Fiat"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

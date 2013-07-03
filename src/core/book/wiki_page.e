@@ -8,6 +8,8 @@ class
 	WIKI_PAGE
 
 inherit
+	SHARED_EXECUTION_ENVIRONMENT
+
 	DEBUG_OUTPUT
 
 create
@@ -22,6 +24,13 @@ feature {NONE} -- Make
 			src := a_key
 		end
 
+feature -- Visitor
+
+	process (a_visitor: WIKI_VISITOR)
+		do
+			a_visitor.visit_page (Current)
+		end
+
 feature -- Access
 
 	title: STRING
@@ -30,36 +39,25 @@ feature -- Access
 
 	src: STRING
 
-	pages: detachable LINKED_LIST [WIKI_PAGE]
+	pages: detachable ARRAYED_LIST [WIKI_PAGE]
 
 	structure: detachable WIKI_STRUCTURE
 
 feature -- Element change
 
-	get_structure (a_book: WIKI_BOOK)
+	get_structure (a_filename: PATH)
 		local
-			fn: FILE_NAME
+			fn: PATH
 			f: PLAIN_TEXT_FILE
 			lst: LIST [STRING]
 			t: STRING
 			ln, p: INTEGER
 			s: STRING
 			in_header: BOOLEAN
-			h: detachable HASH_TABLE [STRING, STRING]
+			h: detachable STRING_TABLE [STRING]
 		do
-			create fn.make_from_string (a_book.path)
-			lst := src.split ('/')
-			from
-				lst.start
-				lst.forth
-			until
-				lst.after
-			loop
-				fn.extend (lst.item)
-				lst.forth
-			end
-			fn.add_extension ("wiki")
-			create f.make (fn.string)
+			fn := a_filename
+			create f.make_with_path (fn)
 			if f.exists and f.is_readable then
 				f.open_read
 				from
@@ -94,14 +92,6 @@ feature -- Element change
 				end
 				f.close
 				create structure.make (h, t)
-				if attached structure as struct then
-					print (debug_output)
-					print (" (src=" + src + ")%N")
-					create fn.make_from_string ((create {EXECUTION_ENVIRONMENT}).current_working_directory)
-					fn.extend (f.name)
-					print ("File: " + fn.string + "%N")
-					struct.process (create {WIKI_DEBUG_VISITOR}.make)
-				end
 			else
 				create structure.make (Void, "!!ERROR!!")
 			end
@@ -113,7 +103,7 @@ feature -- Element change
 		do
 			l_pages := pages
 			if l_pages = Void then
-				create l_pages.make
+				create l_pages.make (3)
 				pages := l_pages
 			end
 			l_pages.extend (a_page)
@@ -141,7 +131,7 @@ feature -- Status report
 		end
 
 note
-	copyright: "2011-2012, Jocelyn Fiat"
+	copyright: "2011-2013, Jocelyn Fiat"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

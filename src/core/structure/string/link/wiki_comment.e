@@ -28,7 +28,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_comment (Current)
+			a_visitor.visit_comment (Current)
 		end
 
 note

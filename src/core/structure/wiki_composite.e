@@ -49,7 +49,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_composite (Current)
+			a_visitor.visit_composite (Current)
 		end
 
 note

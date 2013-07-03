@@ -44,7 +44,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_table (Current)
+			a_visitor.visit_table (Current)
 		end
 
 note

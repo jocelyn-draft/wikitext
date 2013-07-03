@@ -19,7 +19,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_media_link (Current)
+			a_visitor.visit_media_link (Current)
 		end
 
 note

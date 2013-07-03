@@ -66,7 +66,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_link (Current)
+			a_visitor.visit_link (Current)
 		end
 
 note

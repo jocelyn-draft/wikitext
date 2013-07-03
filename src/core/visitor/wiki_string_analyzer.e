@@ -10,7 +10,7 @@ class
 inherit
 	WIKI_ITERATOR
 		redefine
-			process_string
+			visit_string
 		end
 
 	WIKI_HELPER
@@ -26,7 +26,7 @@ feature {NONE} -- Initialization
 
 feature -- Processing
 
-	process_string (a_string: WIKI_STRING)
+	visit_string (a_string: WIKI_STRING)
 		local
 			l_parts: detachable WIKI_STRING_LIST
 		do
@@ -35,9 +35,9 @@ feature -- Processing
 				create l_parts.make
 				analyze_string (a_string.text, l_parts)
 				a_string.set_parts (l_parts)
-				process_composite (l_parts) --| FIXME: check this case
+				visit_composite (l_parts) --| FIXME: check this case
 			else
-				process_composite (l_parts)
+				visit_composite (l_parts)
 			end
 		end
 
@@ -47,8 +47,8 @@ feature -- Processing
 			p,q: INTEGER
 			c: CHARACTER
 			w_item: detachable WIKI_STRING_ITEM
-			tpl: detachable ARRAYED_STACK [TUPLE [position: INTEGER; tpl: WIKI_TEMPLATE]]
-			tok: STRING
+--			tpl: detachable ARRAYED_STACK [TUPLE [position: INTEGER; tpl: WIKI_TEMPLATE]]
+--			tok: STRING
 			s: STRING
 			s_last: STRING
 			s_link: detachable STRING
@@ -220,8 +220,8 @@ feature -- Processing
 							if m = q then
 									--| matching end
 								p := p - m - 1
-								--| best ending match:
-								p := p - 1
+--									--| best ending match:
+--								p := p - 1
 							else
 								p := n
 							end
@@ -230,7 +230,7 @@ feature -- Processing
 							a_parts.add_element (w_item)
 							w_item.process (Current) -- Check recursion...
 							w_item := Void
-							i := p + m -- + 1
+							i := p + m - 1 -- + 1
 						else
 							check should_not_occur: False end
 						end
@@ -330,7 +330,7 @@ feature -- Processing
 		end
 
 note
-	copyright: "2011-2012, Jocelyn Fiat"
+	copyright: "2011-2013, Jocelyn Fiat"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

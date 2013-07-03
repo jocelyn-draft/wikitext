@@ -27,7 +27,7 @@ feature {NONE} -- Make
 
 feature -- Access
 
-	meta_data: detachable HASH_TABLE [STRING, STRING]
+	meta_data: detachable STRING_TABLE [STRING]
 
 feature -- Basic operation
 
@@ -105,7 +105,7 @@ feature -- Basic operation
 			w_list_item: detachable WIKI_LIST
 			w_plist: detachable WIKI_LIST
 			w_block: detachable WIKI_PREFORMATTED_TEXT
-			w_tpl: detachable WIKI_TEMPLATE
+--			w_tpl: detachable WIKI_TEMPLATE
 			tpl: detachable ARRAYED_STACK [INTEGER]
 			w_tags: detachable ARRAYED_STACK [STRING]
 			multiline_level: INTEGER
@@ -412,11 +412,11 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_structure (Current)
+			a_visitor.visit_structure (Current)
 		end
 
 note
-	copyright: "2011-2012, Jocelyn Fiat"
+	copyright: "2011-2013, Jocelyn Fiat"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

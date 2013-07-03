@@ -14,7 +14,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.process_line_separator (Current)
+			a_visitor.visit_line_separator (Current)
 		end
 
 note
