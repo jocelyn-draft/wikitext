@@ -3,6 +3,9 @@ note
 	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
+	EIS: "name=Wikipedia Formatting", "protocol=URI", "src=https://en.wikipedia.org/wiki/Wikipedia:Tutorial/Formatting"
+	EIS: "name=Wikipedia Wiki_markup", "protocol=URI", "src=https://en.wikipedia.org/wiki/Help:Wiki_markup"
+	EIS: "name=Wikipedia Cheatsheet", "protocol=URI", "src=https://en.wikipedia.org/wiki/Wikipedia:Cheatsheet"
 
 class
 	WIKI_STRING_ANALYZER
