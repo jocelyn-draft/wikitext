@@ -220,7 +220,7 @@ invariant
 	valid_parent: attached {WIKI_LIST} parent as p implies (p.level < level and p.description.same_string (description.substring (1, level - 1)))
 
 note
-	copyright: "2011-2013, Jocelyn Fiat"
+	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat
