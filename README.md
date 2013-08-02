@@ -1,9 +1,10 @@
-Status: DRAFT / WORK-IN-PROGRESS
+Status: NEED-IMPROVMENT NEED-CLEANING
 ---------------
-Goal: build library to read wikitext, and render as html, ...
+Goal: library to parse wikitext
+Goal 2: wikitext to html rendering tool
 
 
-copyright: "2011-2012, Jocelyn Fiat"
+copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
 license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 source: "[
 		Jocelyn Fiat
