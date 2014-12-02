@@ -1,53 +1,44 @@
 note
-	description: "Summary description for {WIKI_CODE}."
+	description: "Summary description for {WIKI_ENTITY}."
 	author: ""
 	date: "$Date: 2014-07-31 12:51:15 +0200 (jeu., 31 juil. 2014) $"
 	revision: "$Revision: 95544 $"
 
 class
-	WIKI_CODE
+	WIKI_ENTITY
 
 inherit
 	WIKI_STRING_ITEM
+
+	DEBUG_OUTPUT
 
 create
 	make
 
 feature {NONE} -- Initialization
 
-	make (a_tag: READABLE_STRING_8; s: STRING)
+	make (s: STRING)
 		do
-			tag_name := "code"
-			tag := a_tag
-			text := s
+			value := s
 		end
 
 feature -- Access
 
-	is_inline: BOOLEAN
-		do
-			Result := text.is_single_line
-		end
-
-	tag: READABLE_STRING_8
-
-	tag_name: READABLE_STRING_8
-
-	text: WIKI_STRING
+	value: STRING
 
 feature -- Status report
 
 	is_empty: BOOLEAN
 			-- Is empty text?
 		do
-			Result := tag.is_empty and text.is_empty
+			Result := value.is_empty
 		end
 
 feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.visit_code (Current)
+			a_visitor.visit_entity (Current)
 		end
 
 feature -- Status report
@@ -55,7 +46,7 @@ feature -- Status report
 	debug_output: STRING
 			-- String that should be displayed in debugger to represent `Current'.
 		do
-			Result := tag + "</" + tag_name + ">"
+			Result := "&" + value + ";"
 		end
 
 note

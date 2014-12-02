@@ -1,14 +1,16 @@
 note
 	description: "Summary description for {WIKI_COMPOSITE}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2014-10-20 12:24:00 +0200 (lun., 20 oct. 2014) $"
+	revision: "$Revision: 95953 $"
 
 deferred class
 	WIKI_COMPOSITE [G -> WIKI_ITEM]
 
 inherit
 	WIKI_ITEM
+
+	ITERABLE [G]
 
 feature {NONE} -- Initialization
 
@@ -24,6 +26,12 @@ feature -- Access
 	count: INTEGER
 		do
 			Result := elements.count
+		end
+
+	new_cursor: ITERATION_CURSOR [G]
+			-- Fresh cursor associated with current structure
+		do
+			Result := elements.new_cursor
 		end
 
 feature -- Status report
@@ -53,7 +61,7 @@ feature -- Visitor
 		end
 
 note
-	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

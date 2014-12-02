@@ -1,8 +1,8 @@
 note
 	description : "Objects that ..."
-	author      : "$Author$"
-	date        : "$Date$"
-	revision    : "$Revision$"
+	author      : "$Author: jfiat $"
+	date        : "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
+	revision    : "$Revision: 96211 $"
 
 class
 	WIKITEXT_READER
@@ -26,7 +26,7 @@ feature {NONE} -- Initialization
 		local
 			f: RAW_FILE
 			fn: PATH
-			wp: detachable WIKI_PAGE
+			wp: detachable WIKI_BOOK_PAGE
 			wi: WIKI_INDEX
 		do
 			create fn.make_from_string (a_dir)

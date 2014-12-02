@@ -1,20 +1,26 @@
 note
-	description: "Summary description for {WIKI_LINE_SEPARATOR}."
+	description: "Summary description for {WIKI_TABLE_CELL}."
 	author: ""
-	date: "$Date: 2013-08-02 11:42:20 +0200 (ven., 02 août 2013) $"
-	revision: "$Revision: 92840 $"
+	date: "$Date: 2014-05-16 17:37:30 +0200 (ven., 16 mai 2014) $"
+	revision: "$Revision: 95087 $"
 
 class
-	WIKI_LINE_SEPARATOR
+	WIKI_TABLE_HEADER_CELL
 
 inherit
-	WIKI_ITEM
+	WIKI_TABLE_CELL
+		redefine
+			process
+		end
+
+create
+	make
 
 feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.visit_line_separator (Current)
+			a_visitor.visit_table_header_cell (Current)
 		end
 
 note

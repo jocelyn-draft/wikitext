@@ -1,12 +1,10 @@
 note
-	description: "Summary description for {WIKI_LINK}."
-	author: ""
-	date: "$Date: 2014-07-31 12:51:15 +0200 (jeu., 31 juil. 2014) $"
-	revision: "$Revision: 95544 $"
-	EIS: "name=WikiText Link", "protocol=URI", "src=http://en.wikipedia.org/wiki/Help:Wiki_markup#Links_and_URLs"
+	description: "Summary description for {WIKI_PROPERTY}."
+	date: "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
+	revision: "$Revision: 96211 $"
 
 class
-	WIKI_LINK
+	WIKI_PROPERTY
 
 inherit
 	WIKI_STRING_ITEM
@@ -19,18 +17,17 @@ create
 feature {NONE} -- Initialization
 
 	make (s: STRING)
-			-- [[title|string]]
-			-- [[title|a|b|c|string]]
-			-- [[Image:title|string]]
-			-- [[:spec:title|string]]
+			-- [[Property:name|value]]
+			-- [[Category:name]]
 		require
-			valid_wiki_link: s.count > 0
+			valid_wiki_property: s.count > 0
 			starts_with_double_bracket: s.starts_with ("[[")
 			ends_with_double_bracket: s.ends_with ("]]")
 		local
 			i, p, n: INTEGER
 			t,l_title: detachable STRING
 			in_link: INTEGER -- depth
+			l_lower_name: like name
 		do
 			from
 				n := s.count
@@ -92,18 +89,28 @@ feature {NONE} -- Initialization
 					if l_title /= Void then
 						add_parameter (l_title)
 					end
-					text := wiki_string (t)
+					text := wiki_raw_string (t)
 				end
 			else
 				text := wiki_raw_string (name)
+			end
+			l_lower_name := name.as_lower
+			i := l_lower_name.index_of (':', 1)
+			if i > 0 then
+				sub_type := l_lower_name.head (i - 1)
+				name.remove_head (i)
+			else
+				sub_type := "property"
 			end
 		end
 
 feature -- Access
 
+	sub_type: STRING
+
 	name: STRING
 
-	text: WIKI_STRING_ITEM
+	text: WIKI_RAW_STRING
 
 	parameters: detachable ARRAYED_LIST [READABLE_STRING_8]
 
@@ -115,10 +122,6 @@ feature -- Status report
 			Result := name.is_empty and text.is_empty
 		end
 
-feature -- Status
-
-	inlined: BOOLEAN
-
 feature -- Status report
 
 	debug_output: STRING
@@ -128,11 +131,6 @@ feature -- Status report
 		end
 
 feature -- Element change
-
-	set_inlined (b: like inlined)
-		do
-			inlined := b
-		end
 
 	add_parameter (p: READABLE_STRING_8)
 		local
@@ -152,7 +150,7 @@ feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
 		do
-			a_visitor.visit_link (Current)
+			a_visitor.visit_property (Current)
 		end
 
 note

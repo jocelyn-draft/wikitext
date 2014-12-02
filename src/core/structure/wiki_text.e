@@ -1,28 +1,27 @@
 note
-	description: "Summary description for {WIKI_STRING_ITEM}."
+	description: "Summary description for {WIKI_TEXT}."
 	author: ""
 	date: "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
 	revision: "$Revision: 96211 $"
 
-deferred
-class
-	WIKI_STRING_ITEM
+deferred class
+	WIKI_TEXT
 
 inherit
-	WIKI_ITEM
+	ITERABLE [WIKI_ITEM] -- related to wiki structure
 
-feature -- Status report
+feature -- Access
 
-	is_empty: BOOLEAN
-			-- Is empty text?
-		deferred
+	new_cursor: ITERATION_CURSOR [WIKI_ITEM]
+			-- Fresh cursor associated with current structure
+		do
+			Result := structure.new_cursor
 		end
 
-	is_whitespace: BOOLEAN
-			-- Is empty or blank text?
-		do
-				--| Redefined where a string item may be whitespace.
-			Result := False
+feature -- Access
+
+	structure: WIKI_STRUCTURE
+		deferred
 		end
 
 note

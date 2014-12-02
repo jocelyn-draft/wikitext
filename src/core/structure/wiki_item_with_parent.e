@@ -1,8 +1,8 @@
 note
 	description: "Summary description for {WIKI_ITEM_WITH_PARENT}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2013-08-02 11:42:20 +0200 (ven., 02 août 2013) $"
+	revision: "$Revision: 92840 $"
 
 class
 	WIKI_ITEM_WITH_PARENT [G -> WIKI_ITEM]

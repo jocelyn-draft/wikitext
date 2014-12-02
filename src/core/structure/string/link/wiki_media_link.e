@@ -1,7 +1,7 @@
 note
 	description: "Summary description for {WIKI_MEDIA_LINK}."
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2013-08-02 11:42:20 +0200 (ven., 02 août 2013) $"
+	revision: "$Revision: 92840 $"
 
 class
 	WIKI_MEDIA_LINK

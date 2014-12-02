@@ -1,8 +1,8 @@
 note
 	description: "Summary description for {WIKI_STRUCTURE}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
+	revision: "$Revision: 96211 $"
 
 class
 	WIKI_STRUCTURE
@@ -13,21 +13,18 @@ inherit
 			process
 		end
 
+	WIKI_ANALYZER_HELPER
+
 create
 	make
 
 feature {NONE} -- Make
 
-	make (a_meta_data: like meta_data; a_text: STRING)
+	make (a_text: STRING)
 		do
 			initialize
-			meta_data := a_meta_data
 			analyze (a_text)
 		end
-
-feature -- Access
-
-	meta_data: detachable STRING_TABLE [STRING]
 
 feature -- Basic operation
 
@@ -56,7 +53,7 @@ feature -- Basic operation
 			end
 		end
 
-	analyze (t: STRING)
+	analyze (a_text: STRING)
 			--| To support:
 			--| = Text =
 			--| == Text ==
@@ -105,14 +102,15 @@ feature -- Basic operation
 			w_list_item: detachable WIKI_LIST
 			w_plist: detachable WIKI_LIST
 			w_block: detachable WIKI_PREFORMATTED_TEXT
---			w_tpl: detachable WIKI_TEMPLATE
-			tpl: detachable ARRAYED_STACK [INTEGER]
-			w_tags: detachable ARRAYED_STACK [STRING]
 			multiline_level: INTEGER
 			ignore_wiki: BOOLEAN
 			keep_formatting: BOOLEAN
 			mt_ln: INTEGER
+			s: STRING
+			l_items: ARRAYED_STACK [TUPLE [pos: INTEGER; kind: STRING]]
+			l_tag: detachable READABLE_STRING_8
 		do
+			create l_items.make (0)
 			from
 				create {WIKI_PARAGRAPH} w_box.make
 				add_element (w_box)
@@ -120,31 +118,31 @@ feature -- Basic operation
 				b := 1
 				is_start_of_line := True
 				ln := 1
-				n := t.count
+				n := a_text.count
 			until
 				i > n
 			loop
-				c := t.item (i)
+				c := a_text.item (i)
 				if is_start_of_line then
-					p := index_of_end_of_line (t, i)
+					p := index_of_end_of_line (a_text, i)
 					inspect c
 					when '-' then
 						w_plist := Void
 						w_block := Void
 						is_start_of_line := False
-						if safe_following_character_count (t, i + 1, '-') = 3 then
+						if safe_following_character_count (a_text, i + 1, '-') = 3 then
 							is_start_of_line := True
 
 							w_item := new_boxed_item (create {WIKI_LINE_SEPARATOR})
 							add_element_box_to (w_psec, new_boxed_item (create {WIKI_LINE_SEPARATOR}))
 
 							w_box := new_paragraph (w_psec)
-							add_element_to (w_box, create {WIKI_LINE}.make (t.substring (i + 4, p)))
+							add_element_to (w_box, create {WIKI_LINE}.make (a_text.substring (i + 4, p)))
 						end
 					when '=' then
 						w_block := Void
 						w_plist := Void
-						create w_sec.make (t.substring (i, p))
+						create w_sec.make (a_text.substring (i, p))
 						if w_sec.is_valid then
 							if
 								w_sec.level > 1 and then
@@ -166,7 +164,8 @@ feature -- Basic operation
 					when '*','#',';',':' then
 						w_box := Void
 						w_block := Void
-						w_list_item := new_list_item (t.substring (i, p))
+						s := a_text.substring (i, p)
+						w_list_item := new_list_item (s)
 						if
 							w_plist /= Void and then --| has previous section, check if is potential parent
 							attached w_plist.adapted_parent_list (w_list_item) as l_parent_list
@@ -190,9 +189,9 @@ feature -- Basic operation
 						w_box := Void
 						w_plist := Void
 						if w_block /= Void then
-							w_block.add_element (create {WIKI_LINE}.make (t.substring (i + 1, p)))
+							w_block.add_element (create {WIKI_LINE}.make (a_text.substring (i + 1, p)))
 						else
-							create w_block.make (t.substring (i, p))
+							create w_block.make (a_text.substring (i, p))
 							add_element_box_to (w_psec, w_block)
 						end
 						is_start_of_line := True
@@ -213,13 +212,13 @@ feature -- Basic operation
 					if multiline_level > 0 then
 						-- Continue to next line ...
 						mt_ln := mt_ln + 1
-						p := index_of_end_of_line (t, i + 1)
+						p := index_of_end_of_line (a_text, i + 1)
 						check w_plist = Void and w_block = Void end
 					else
 						w_plist := Void
 						w_block := Void
 						is_start_of_line := True
-						create w_line.make (t.substring (b, p))
+						create w_line.make (a_text.substring (b, p))
 
 						if w_box = Void then
 							w_box := new_paragraph (w_psec)
@@ -235,43 +234,52 @@ feature -- Basic operation
 						b := i + 1
 					end
 				when '{' then
-					if safe_character (t, i + 1) = '{' then
-						if tpl = Void then
-							create tpl.make (3)
-						end
+					if safe_character (a_text, i + 1) = '{' then
 						i := i + 1
-						tpl.extend (i + 1)
+						on_wiki_item_begin_token (l_items, i+1, "template")
+						multiline_level := multiline_level + 1
+					elseif safe_character (a_text, i + 1) = '|' then
+							-- Table
+						i := i + 1
+						on_wiki_item_begin_token (l_items, i + 1, "table")
 						multiline_level := multiline_level + 1
 					end
-				when '}' then
-					if multiline_level > 0 and t.item (i + 1) = '}' then
+				when '|' then
+					if multiline_level > 0 and a_text.item (i + 1) = '}' then
 						i := i + 1
-						if tpl /= Void and then tpl.count > 0 then
-							tpl.remove
+						if is_wiki_item_token_of_kind (l_items, "table") then
+							on_wiki_item_end_token (l_items, i, "table")
+							multiline_level := multiline_level - 1
+						else
+							check multiline_level = 0 end
+						end
+					end
+				when '}' then
+					if multiline_level > 0 and a_text.item (i + 1) = '}' then
+						i := i + 1
+						if is_wiki_item_token_of_kind (l_items, "template") then
+							on_wiki_item_end_token (l_items, i, "template")
 							multiline_level := multiline_level - 1
 						else
 							check multiline_level = 0 end
 						end
 					end
 				when '<' then
-					if w_tags = Void then
-						create w_tags.make (3)
-					end
 						--| Builtin tags
 						-- nowiki, ref, blockquote, center, pre, ...
 					if ignore_wiki then
-						if next_following_character_matched (t, i + 1, "/nowiki>", True) then
-							if w_tags /= Void and then w_tags.count > 0 and then attached w_tags.item as l_tag and then l_tag.same_string ("nowiki") then
-								w_tags.remove
+						if next_following_character_matched (a_text, i + 1, "/nowiki>", True) then
+							if is_wiki_item_token_of_kind (l_items, "tag:nowiki") then
+								on_wiki_item_end_token (l_items, i, "tag:nowiki")
 								ignore_wiki := False
 								multiline_level := multiline_level - 1
 								i := i + 8 --| = ("/nowiki>").count
 							else
 								check False end
 							end
-						elseif next_following_character_matched (t, i + 1, "/pre>", True) then
-							if w_tags /= Void and then w_tags.count > 0 and then attached w_tags.item as l_tag and then l_tag.same_string ("pre") then
-								w_tags.remove
+						elseif next_following_character_matched (a_text, i + 1, "/pre>", True) then
+							if is_wiki_item_token_of_kind (l_items, "tag:pre") then
+								on_wiki_item_end_token (l_items, i, "tag:pre")
 								ignore_wiki := False
 								keep_formatting := False
 								multiline_level := multiline_level - 1
@@ -281,82 +289,63 @@ feature -- Basic operation
 							end
 						end
 
-					elseif safe_character (t, i + 1) = '!' then
-						if safe_following_character_count (t, i + 2, '-') = 2 then
-							m := t.substring_index ("-->", i + 4)
+					elseif safe_character (a_text, i + 1) = '!' then
+						if safe_following_character_count (a_text, i + 2, '-') = 2 then
+							m := a_text.substring_index ("-->", i + 4)
 							if m > 0 then
 								i := m + 3
-								p := index_of_end_of_line (t, i)
+								p := index_of_end_of_line (a_text, i)
 							end
 						end
-					elseif safe_character (t, i + 1) = '/' then
-						if w_tags /= Void and then w_tags.count > 0 then
-							if attached w_tags.item as l_tag then
-								if next_following_character_matched (t, i + 2, l_tag + ">", True) then
-									do_nothing
-									w_tags.remove
-									multiline_level := multiline_level - 1
-									i := i + 2 + l_tag.count + 1
-								end
-							end
+					elseif safe_character (a_text, i + 1) = '/' then
+						l_tag := wiki_item_tag_token_kind (l_items)
+						if
+							l_tag /= Void and then
+							next_following_character_matched (a_text, i + 2, l_tag + ">", True)
+						then
+							on_wiki_item_end_token (l_items, i, "tag:" + l_tag)
+							multiline_level := multiline_level - 1
+							i := i + 1 + l_tag.count + 1  --| /tag>
 						end
 					else
-						if next_following_character_matched (t, i, "<nowiki>", True) then
-							multiline_level := multiline_level + 1
-							ignore_wiki := True
-							w_tags.extend ("nowiki")
-							i := i + w_tags.item.count + 1
-						elseif next_following_character_matched (t, i, "<pre>", True) then
-							multiline_level := multiline_level + 1
-							ignore_wiki := True
-							keep_formatting := True
-							w_tags.extend ("pre")
-							i := i + w_tags.item.count + 1
-						elseif next_following_character_matched (t, i, "<code>", True) then
-							multiline_level := multiline_level + 1
-							w_tags.extend ("code")
-							i := i + w_tags.item.count + 1
-						elseif next_following_character_matched (t, i, "<blockquote>", True) then
-							multiline_level := multiline_level + 1
-							w_tags.extend ("blockquote")
-							i := i + w_tags.item.count + 1
-						elseif next_following_character_matched (t, i, "<center>", True) then
-							multiline_level := multiline_level + 1
-							w_tags.extend ("center")
-							i := i + w_tags.item.count + 1
-
-						elseif next_following_character_matched (t, i, "<strike>", True) then
-								-- Style: strike
-							multiline_level := multiline_level + 1
-							w_tags.extend ("strike")
-							i := i + w_tags.item.count + 1
-						elseif next_following_character_matched (t, i, "<u>", True) then
-								-- Style: underline							
-							multiline_level := multiline_level + 1
-							w_tags.extend ("u")
-							i := i + w_tags.item.count + 1
-						elseif next_following_character_matched (t, i, "<sup>", True) then
-								-- Style: superscripts							
-							multiline_level := multiline_level + 1
-							w_tags.extend ("sup")
-							i := i + w_tags.item.count + 1
-						elseif next_following_character_matched (t, i, "<sub>", True) then
-								-- Style: subscripts							
-							multiline_level := multiline_level + 1
-							w_tags.extend ("sub")
-							i := i + w_tags.item.count + 1
-						elseif next_following_character_matched (t, i, "<tt>", True) then
-								-- Style: TypeWriter
-							multiline_level := multiline_level + 1
-							w_tags.extend ("tt")
-							i := i + w_tags.item.count + 1
---						elseif next_following_character_matched (t, i, "<ref>", True) then
---							multiline_level := multiline_level + 1
---							w_tags.extend ("ref")
---							i := i + w_tags.item.count + 1
-
+						p := next_end_of_tag_character (a_text, i + 1)
+						if p > 0 then
+							if a_text[p-1] = '/' then
+								l_tag := tag_name_from (a_text.substring (i, p))
+								on_wiki_item_begin_token (l_items, i + 1, "tag:" + l_tag)
+								on_wiki_item_end_token (l_items, i + 1, "tag:" + l_tag)
+								if p > 0 then
+									i := p
+								else
+									check has_end_of_tag_character: False end
+									i := i + (l_tag).count + 1 + 1
+								end
+							else
+								l_tag := tag_name_from (a_text.substring (i, p))
+								if l_tag.is_empty then
+										-- ???
+								else
+									multiline_level := multiline_level + 1
+									keep_formatting := False
+									if l_tag.is_case_insensitive_equal_general ("nowiki") then
+										ignore_wiki := True
+									elseif l_tag.is_case_insensitive_equal_general ("pre") then
+										keep_formatting := True
+										ignore_wiki := True
+									else
+										ignore_wiki := False
+									end
+									on_wiki_item_begin_token (l_items, i + 1, "tag:" + l_tag)
+									if p > 0 then
+										i := p
+									else
+										check has_end_of_tag_character: False end
+										i := i + (l_tag).count + 1
+									end
+								end
+							end
 						else
-
+							l_tag := ""
 						end
 					end
 				else
@@ -372,6 +361,46 @@ feature -- Basic operation
 		do
 			create v.make
 			process (v)
+		end
+
+feature {NONE} -- Internal events
+
+	is_wiki_item_token_of_kind (a_items: ARRAYED_STACK [TUPLE [position: INTEGER; kind: STRING]]; a_kind: STRING): BOOLEAN
+		do
+			Result := attached wiki_item_token_kind (a_items) as tok and then tok.is_case_insensitive_equal (a_kind)
+		end
+
+	wiki_item_token_kind (a_items: ARRAYED_STACK [TUPLE [position: INTEGER; kind: STRING]]): detachable STRING
+		do
+			if not a_items.is_empty then
+				Result := a_items.item.kind
+			end
+		end
+
+	wiki_item_tag_token_kind (a_items: ARRAYED_STACK [TUPLE [position: INTEGER; kind: STRING]]): detachable STRING
+		do
+			if
+				attached wiki_item_token_kind (a_items) as s and then
+				s.starts_with ("tag:")
+			then
+				Result := s.substring (4 + 1, s.count)
+			end
+		end
+
+	on_wiki_item_begin_token (a_items: ARRAYED_STACK [TUPLE [position: INTEGER; kind: STRING]]; a_position: INTEGER; a_kind: STRING)
+		do
+			a_items.extend ([a_position, a_kind])
+		end
+
+	on_wiki_item_end_token (a_items: ARRAYED_STACK [TUPLE [position: INTEGER; kind: STRING]]; a_position: INTEGER; a_kind: STRING)
+		do
+			if a_items.is_empty then
+				check False end
+			else
+				if a_items.item.kind.is_case_insensitive_equal (a_kind) then
+					a_items.remove
+				end
+			end
 		end
 
 feature -- Factory
@@ -401,13 +430,6 @@ feature -- Factory
 			Result := f.new_list (s)
 		end
 
-feature -- Query
-
---	last_element (s: WIKI_SECTION): WIKI_ITEM
---		do
---			
---		end
-
 feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
@@ -416,7 +438,7 @@ feature -- Visitor
 		end
 
 note
-	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

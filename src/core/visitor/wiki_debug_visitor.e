@@ -1,8 +1,8 @@
 note
 	description: "Summary description for {WIKI_DEBUG_VISITOR}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
+	revision: "$Revision: 96211 $"
 
 class
 	WIKI_DEBUG_VISITOR
@@ -326,6 +326,14 @@ feature -- Tag
 			set_next_output_appended
 		end
 
+feature -- Entity
+
+	visit_entity (a_entity: WIKI_ENTITY)
+		do
+			output ("&" + a_entity.value + ";")
+			set_next_output_appended
+		end
+
 feature -- Links
 
 	visit_external_link (a_link: WIKI_EXTERNAL_LINK)
@@ -391,6 +399,18 @@ feature -- Links
 			set_next_output_appended
 		end
 
+feature -- Property
+
+	visit_property (a_prop: WIKI_PROPERTY)
+		do
+			output ("Property("+ a_prop.name + ", %"")
+			set_next_output_appended
+			a_prop.text.process (Current)
+			set_next_output_appended
+			output ("%")")
+			set_next_output_appended
+		end
+
 feature -- Table
 
 	visit_table (a_table: WIKI_TABLE)
@@ -401,6 +421,11 @@ feature -- Table
 	visit_table_row (a_row: WIKI_TABLE_ROW)
 		do
 			visit_composite (a_row)
+		end
+
+	visit_table_header_cell (a_cell: WIKI_TABLE_HEADER_CELL)
+		do
+			a_cell.text.process (Current)
 		end
 
 	visit_table_cell (a_cell: WIKI_TABLE_CELL)
@@ -522,7 +547,7 @@ feature -- Implementation
 		end
 
 note
-	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

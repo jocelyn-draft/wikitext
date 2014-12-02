@@ -1,8 +1,8 @@
 note
 	description: "Summary description for {WIKI_LINE}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
+	revision: "$Revision: 96211 $"
 
 class
 	WIKI_LINE
@@ -38,6 +38,24 @@ feature -- Status report
 			Result := text.is_empty
 		end
 
+	is_property_line: BOOLEAN
+			-- Does Current line contains only properties or whitespace?
+			-- Warning: this is relevant only if `text' has been analyzed.
+		require
+			is_analyzed: text.parts /= Void
+		do
+			if attached text.parts as l_parts then
+				Result := across l_parts as ic all attached {WIKI_PROPERTY} ic.item or else ic.item.is_whitespace end
+			else
+				check is_analyzed: False end
+			end
+		end
+
+	is_whitespace: BOOLEAN
+		do
+			Result := text.is_whitespace
+		end
+
 feature -- Element change
 
 	set_line_count (n: like line_count)
@@ -63,7 +81,7 @@ feature -- Status report
 		end
 
 note
-	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

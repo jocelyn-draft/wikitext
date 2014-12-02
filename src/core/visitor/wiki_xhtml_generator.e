@@ -1,8 +1,8 @@
 note
 	description: "Summary description for {WIKI_XHTML_GENERATOR}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
+	revision: "$Revision: 96211 $"
 
 class
 	WIKI_XHTML_GENERATOR
@@ -22,6 +22,44 @@ feature {NONE} -- Initialization
 --			create list_indexes.make_filled (0, 0, 50)
 		end
 
+feature -- Basic operation
+
+	reset
+		do
+			level := 0
+			list_level := 0
+			section_level := 0
+			pre_block_level := 0
+			next_output_require_newline := False
+			next_newline_ignored := False
+			current_page := Void
+		end
+
+feature -- Callback
+
+	link_resolver: detachable WIKI_LINK_RESOLVER assign set_link_resolver
+
+	image_resolver: detachable WIKI_IMAGE_RESOLVER assign set_image_resolver
+
+	template_resolver: detachable WIKI_TEMPLATE_RESOLVER assign set_template_resolver
+
+feature -- Callback change
+
+	set_link_resolver (r: like link_resolver)
+		do
+			link_resolver := r
+		end
+
+	set_image_resolver (r: like image_resolver)
+		do
+			image_resolver := r
+		end
+
+	set_template_resolver (r: like template_resolver)
+		do
+			template_resolver := r
+		end
+
 feature -- Output
 
 	buffer: STRING
@@ -31,8 +69,15 @@ feature -- Output
 			buf: like buffer
 		do
 			buf := buffer
-			if next_output_require_newline then
-				buf.append ("<br/>%N")
+			if next_newline_ignored then
+				reset_ignore_next_newline
+				next_output_require_newline := False
+			elseif next_output_require_newline then
+				if in_pre_block then
+					buf.append ("%N")
+				else
+					buf.append ("<br/>%N")
+				end
 				next_output_require_newline := False
 			else
 --				buf.append_character ('%N')
@@ -40,6 +85,16 @@ feature -- Output
 --				buf.append (create {STRING}.make_filled (' ', level * 2))
 			end
 			buf.append (s)
+		end
+
+	ignore_next_newline
+		do
+			next_newline_ignored := True
+		end
+
+	reset_ignore_next_newline
+		do
+			next_newline_ignored := False
 		end
 
 	unset_next_output_require_newline
@@ -51,6 +106,8 @@ feature -- Output
 		do
 			next_output_require_newline := True
 		end
+
+	next_newline_ignored: BOOLEAN
 
 	next_output_require_newline: BOOLEAN
 
@@ -71,19 +128,55 @@ feature -- Output
 			level := v
 		end
 
+feature -- status: pre block	
+
+	pre_block_level: INTEGER
+
+	in_pre_block: BOOLEAN
+		do
+			Result := pre_block_level > 0
+		end
+
+	enter_pre_block
+		do
+			pre_block_level := pre_block_level + 1
+		end
+
+	exit_pre_block
+		do
+			pre_block_level := pre_block_level - 1
+		end
+
+	current_page: detachable WIKI_PAGE
+			-- Current page being processed.
+
+feature -- Helper
+
+	page_title (a_page: WIKI_PAGE): STRING_8
+			-- Title for page `a_page'.
+		do
+			Result := a_page.title
+		end
+
+	book_title (a_book: WIKI_BOOK): STRING_8
+			-- Title for book `a_book'.
+		do
+			Result := a_book.name
+		end
+
 feature -- Book processing
 
 	visit_book (a_book: WIKI_BOOK)
 		do
 			output ("<div class=%"wikibook%">")
-			output ("<div class=%"title%">"+ a_book.name +"</div>")
+			output ("<div class=%"title%">"+ book_title (a_book) +"</div>")
 
 			across
 				a_book.pages as c
 			loop
 
 				output ("<div class=%"wikipage%">")
-				output ("<div class=%"title%">"+ c.item.title +"</div>")
+				output ("<div class=%"title%">"+ page_title (c.item) +"</div>")
 				c.item.process (Current)
 				output ("</div>%N")
 			end
@@ -92,11 +185,28 @@ feature -- Book processing
 
 	visit_page (a_page: WIKI_PAGE)
 		do
+			current_page := a_page
 			if attached a_page.structure as st then
+-- TODO: support for __TOC__ and related
+-- TOC				
+--				across
+--					st.elements as ic
+--				loop
+--					if attached {WIKI_SECTION} ic.item as w_section then
+--						output ("<li>")
+--						if attached w_section.text as l_text then
+--							output (l_text.text)
+--						else
+--							output ("...")
+--						end
+--						output ("</li>")
+--					end
+--				end
 				output ("<div>")
 				st.process (Current)
 				output ("</div>%N")
 			end
+			current_page := Void
 		end
 
 feature -- Processing
@@ -203,9 +313,17 @@ feature -- Processing
 
 	visit_preformatted_text (a_block: WIKI_PREFORMATTED_TEXT)
 		do
-			output ("<pre>")
-			visit_composite (a_block)
-			output ("</pre>")
+			if a_block.is_empty then
+				output ("")
+				set_next_output_require_newline
+			else
+				output ("<pre>")
+				enter_pre_block
+				visit_composite (a_block)
+				output ("</pre>")
+				exit_pre_block
+				ignore_next_newline
+			end
 		end
 
 --	process_indented_text (a_text: WIKI_INDENTED_TEXT)
@@ -227,12 +345,16 @@ feature -- Processing
 
 	visit_line (a_line: WIKI_LINE)
 		do
-			if not a_line.is_empty then
-				a_line.text.process (Current)
-				set_next_output_require_newline
+			if a_line.is_property_line then
+					-- skip
 			else
-				output ("")
-				set_next_output_require_newline
+				if a_line.is_empty then -- FIXME: or is_whitespace ??
+					output ("")
+					set_next_output_require_newline
+				else
+					a_line.text.process (Current)
+					set_next_output_require_newline
+				end
 			end
 		end
 
@@ -296,7 +418,23 @@ feature -- Strings
 feature -- Template
 
 	visit_template (a_template: WIKI_TEMPLATE)
+		local
+			wstr: WIKI_STRING
 		do
+			if
+				attached template_resolver as r and then
+				attached r.content (a_template, current_page) as tpl
+			then
+				wstr := a_template.text (tpl)
+				wstr.process (Current)
+			else
+				output ("<div class=%"wiki-template " + a_template.name + "%" class=%"inline%">")
+				output ("<strong>" + a_template.name + "</strong>: ")
+				if attached a_template.parameters_string as st then
+					st.process (Current)
+				end
+				output ("</div>")
+			end
 			debug
 				output ("{{TEMPLATE %"" + a_template.name + "%"")
 				if attached a_template.parameters_string as str then
@@ -312,21 +450,34 @@ feature -- Tag
 
 	visit_code (a_code: WIKI_CODE)
 		local
-			n: READABLE_STRING_8
+			l_is_inline: BOOLEAN
+			l_tag: STRING
 		do
-			output ("<" + a_code.tag_name + ">")
+			l_tag := a_code.tag
+			l_is_inline := a_code.is_inline
+			if l_is_inline then
+				output (l_tag.substring (1, l_tag.count - 1))
+				output (" class=%"inline%">")
+			else
+				output (l_tag)
+			end
 			a_code.text.process (Current)
 			output ("</" + a_code.tag_name + ">")
+			ignore_next_newline
 		end
 
 	visit_tag (a_tag: WIKI_TAG)
-		local
-			n: READABLE_STRING_8
 		do
-			n := a_tag.tag_name
-			output ("<" + n + ">")
+			output (a_tag.tag)
 			a_tag.text.process (Current)
-			output ("</" + n + ">")
+			output ("</" + a_tag.tag_name + ">")
+		end
+
+feature -- Entity
+
+	visit_entity (a_entity: WIKI_ENTITY)
+		do
+			output ("&" + a_entity.value + ";")
 		end
 
 feature -- Links
@@ -339,27 +490,67 @@ feature -- Links
 		end
 
 	visit_link (a_link: WIKI_LINK)
+		local
+			l_url: detachable READABLE_STRING_8
 		do
-			output ("<a href=%"" + a_link.name + ".html%" class=%"wiki_link%">")
+			if
+				attached link_resolver as r and then
+				attached r.wiki_url (a_link, current_page) as u
+			then
+				l_url := u
+			else
+				l_url := a_link.name
+			end
+			debug
+--				output ("#" + l_url + "#")
+			end
+			output ("<a href=%"" + l_url + "%" class=%"wiki_link%">")
 			a_link.text.process (Current)
 			output ("</a>")
 		end
 
 	visit_image_link (a_link: WIKI_IMAGE_LINK)
+		local
+			l_wiki_url, l_url: detachable READABLE_STRING_8
 		do
-			-- FIXME!!!
-			if a_link.inlined then
-				output ("<img src=%"" + a_link.name + "%">")
-				if not attached {WIKI_RAW_STRING} a_link.text then
-					a_link.text.process (Current)
-				end
-				output ("</img>")
-			else
-				output ("<img src=%"" + a_link.name + "%">")
-				if not attached {WIKI_RAW_STRING} a_link.text then
-					a_link.text.process (Current)
-				end
-				output ("</img>")
+			if attached image_resolver as r then
+				l_url := r.url (a_link, current_page)
+				l_wiki_url := r.wiki_url (a_link, current_page)
+			end
+			if l_wiki_url = Void then
+				l_wiki_url := a_link.name
+			end
+			if l_url = Void then
+				l_url := l_wiki_url
+			end
+			if attached a_link.location_parameter as l_location then
+				output ("<div style=%"text-align: "+ l_location +"%">")
+			end
+			output ("<a href=%"" + l_wiki_url + "%">")
+			output ("<img src=%"" + l_url + "%" border=%"0%"")
+			if attached a_link.width_parameter as w then
+				output (" width=%"")
+				output (w)
+				output ("%"")
+			end
+			if attached a_link.height_parameter as h then
+				output (" height=%"")
+				output (h)
+				output ("%"")
+			end
+			output ("/>")
+			output ("</a>")
+			if not a_link.inlined then
+				output ("<br/>")
+			end
+
+			if not attached {WIKI_RAW_STRING} a_link.text then
+				a_link.text.process (Current)
+			end
+			if a_link.location_parameter /= Void then
+				output ("</div>")
+			end
+			if not a_link.inlined then
 				set_next_output_require_newline
 			end
 		end
@@ -367,28 +558,47 @@ feature -- Links
 	visit_category_link (a_link: WIKI_CATEGORY_LINK)
 		do
 			if a_link.inlined then
-				output ("CATEGORY("+ a_link.name + ", %"")
+				output ("<!-- Category: "+ a_link.name + "=")
 				a_link.text.process (Current)
-				output ("%")")
+				output (" -->")
 			else
-				-- FIXME
+				-- FIXME: not implemented
 			end
 		end
 
 	visit_media_link (a_link: WIKI_MEDIA_LINK)
 		do
-			output ("MEDIA("+ a_link.name + ", %"")
+				-- FIXME: not implemented
+			output ("<!-- Media: "+ a_link.name + "=")
 			a_link.text.process (Current)
-			output ("%")")
+			output (" -->")
+		end
+
+	visit_property (a_prop: WIKI_PROPERTY)
+		do
+			output ("<!-- Property: "+ a_prop.name + "=")
+			a_prop.text.process (Current)
+			output (" -->%N")
 		end
 
 feature -- Table
 
 	visit_table (a_table: WIKI_TABLE)
 		do
-			output ("<table>")
+			if attached a_table.style as st then
+				output ("<table " + st + ">")
+			else
+				output ("<table>")
+			end
+			if attached a_table.caption as l_caption then
+				output ("<caption>")
+				l_caption.process (Current)
+				output ("</caption>")
+			end
+
 			visit_composite (a_table)
 			output ("</table>")
+			ignore_next_newline
 		end
 
 	visit_table_row (a_row: WIKI_TABLE_ROW)
@@ -398,9 +608,38 @@ feature -- Table
 			output ("</tr>")
 		end
 
+	visit_table_header_cell (a_cell: WIKI_TABLE_HEADER_CELL)
+		do
+			if attached a_cell.modifiers as lst and then not lst.is_empty then
+				output ("<th")
+				across
+					lst as ic
+				loop
+					output (" ")
+					output (ic.item)
+				end
+				output (">")
+			else
+				output ("<th>")
+			end
+			a_cell.text.process (Current)
+			output ("</th>")
+		end
+
 	visit_table_cell (a_cell: WIKI_TABLE_CELL)
 		do
-			output ("<td>")
+			if attached a_cell.modifiers as lst and then not lst.is_empty then
+				output ("<td")
+				across
+					lst as ic
+				loop
+					output (" ")
+					output (ic.item)
+				end
+				output (">")
+			else
+				output ("<td>")
+			end
 			a_cell.text.process (Current)
 			output ("</td>")
 		end
@@ -519,7 +758,7 @@ feature -- Implementation
 		end
 
 note
-	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

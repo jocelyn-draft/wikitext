@@ -1,8 +1,8 @@
 note
 	description: "Summary description for {WIKI_DEBUG_VISITOR}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
+	revision: "$Revision: 96211 $"
 
 class
 	WIKI_NULL_VISITOR
@@ -80,6 +80,12 @@ feature -- Strings
 		do
 		end
 
+feature -- Entity		
+
+	visit_entity (a_entity: WIKI_ENTITY)
+		do
+		end
+
 feature -- Template
 
 	visit_template (a_template: WIKI_TEMPLATE)
@@ -118,6 +124,12 @@ feature -- Links
 		do
 		end
 
+feature -- Property
+
+	visit_property (a_prop: WIKI_PROPERTY)
+		do
+		end
+
 feature -- Table
 
 	visit_table (a_table: WIKI_TABLE)
@@ -128,12 +140,16 @@ feature -- Table
 		do
 		end
 
+	visit_table_header_cell (a_cell: WIKI_TABLE_HEADER_CELL)
+		do
+		end
+
 	visit_table_cell (a_cell: WIKI_TABLE_CELL)
 		do
 		end
 
 note
-	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

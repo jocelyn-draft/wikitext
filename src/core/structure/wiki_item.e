@@ -1,8 +1,8 @@
 note
 	description: "Summary description for {WIKI_ITEM}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2014-05-19 23:19:11 +0200 (lun., 19 mai 2014) $"
+	revision: "$Revision: 95115 $"
 
 deferred class
 	WIKI_ITEM
@@ -19,7 +19,7 @@ feature -- Visitor
 		end
 
 note
-	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

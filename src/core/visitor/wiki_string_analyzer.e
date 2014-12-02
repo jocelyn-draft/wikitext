@@ -1,8 +1,8 @@
 note
 	description: "Summary description for {WIKI_STRING_ANALYZER}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
+	revision: "$Revision: 96211 $"
 	EIS: "name=Wikipedia Formatting", "protocol=URI", "src=https://en.wikipedia.org/wiki/Wikipedia:Tutorial/Formatting"
 	EIS: "name=Wikipedia Wiki_markup", "protocol=URI", "src=https://en.wikipedia.org/wiki/Help:Wiki_markup"
 	EIS: "name=Wikipedia Cheatsheet", "protocol=URI", "src=https://en.wikipedia.org/wiki/Wikipedia:Cheatsheet"
@@ -16,7 +16,7 @@ inherit
 			visit_string
 		end
 
-	WIKI_HELPER
+	WIKI_ANALYZER_HELPER
 
 create
 	make
@@ -50,16 +50,15 @@ feature -- Processing
 			p,q,r: INTEGER
 			c: CHARACTER
 			w_item: detachable WIKI_STRING_ITEM
---			tpl: detachable ARRAYED_STACK [TUPLE [position: INTEGER; tpl: WIKI_TEMPLATE]]
---			tok: STRING
 			t,s: STRING
 			s_last: STRING
 			s_link: detachable STRING
-			in_item: BOOLEAN
+			in_items: ARRAYED_STACK [TUPLE [position: INTEGER; kind: STRING]] -- Names
 			done: BOOLEAN
 		do
 			n := a_text.count
 			from
+				create in_items.make (0)
 				create s_last.make (n)
 				s := s_last
 				i := 1
@@ -67,17 +66,39 @@ feature -- Processing
 				i > n
 			loop
 				c := a_text.item (i)
-				inspect
-					c
+				inspect c
 				when '{' then
 					if safe_character (a_text, i + 1) = '{' then
+							-- Wiki Template
 						p := next_closing_template (a_text, i + 2)
 						if p > i then
-							flush_buffer (a_parts, s)
-							create {WIKI_TEMPLATE} w_item.make (a_text.substring (i+2, p))
-							a_parts.add_element (w_item)
-							w_item.process (Current) -- Check recursion...							
-							w_item := Void
+							if in_items.is_empty then
+								flush_buffer (a_parts, s)
+								create {WIKI_TEMPLATE} w_item.make (a_text.substring (i, p + 2))
+								a_parts.add_element (w_item)
+								w_item.process (Current) -- Check recursion...							
+								w_item := Void
+							else
+								s.append (a_text.substring (i, p + 2))
+							end
+							i := p + 2
+						else
+							--| Ignore this one ..
+							s.extend (c)
+						end
+					elseif safe_character (a_text, i + 1) = '|' then
+							-- Wiki Table
+						p := next_closing_table (a_text, i + 2)
+						if p > i then
+							if in_items.is_empty then
+								flush_buffer (a_parts, s)
+								create {WIKI_TABLE} w_item.make (a_text.substring (i, p + 2))
+								a_parts.add_element (w_item)
+								w_item.process (Current) -- Check recursion...							
+								w_item := Void
+							else
+								s.append (a_text.substring (i, p + 2))
+							end
 							i := p + 2
 						else
 							--| Ignore this one ..
@@ -88,69 +109,47 @@ feature -- Processing
 					end
 				when '[' then
 					if safe_character (a_text, i + 1) = '[' then
-						if s_link /= Void then
-								--| Cancel previous
-							s_last.append (s_link)
-							s_link.wipe_out
+							-- Wiki link
+						p := next_closing_link (a_text, i + 2)
+						if p > i then
+							if in_items.is_empty then
+								flush_buffer (a_parts, s)
+								w_item := new_wiki_link (a_text.substring (i, p + 2), safe_character (a_text, p + 2 + 1) = '%N')
+								a_parts.add_element (w_item)
+								w_item.process (Current) -- Check recursion...
+								w_item := Void
+							else
+								s.append (a_text.substring (i, p + 2))
+							end
+							i := p + 2
 						else
-							create s_link.make (20)
+							--| Ignore this one ..
+							s.extend (c)
 						end
-						s := s_link
-						in_item := True
-
-						s.extend (c)
-						i := i + 1
-						s.extend ('[')
-					elseif in_item then
-						s.extend (c)
 					else
-						--| find closing external link bracket ']'
+							--| find closing external link bracket ']'
+							--| external link "[href a title for the link]"
 						p := a_text.index_of (']', i + 1)
 						if p > 0 and p <= n then
-							flush_buffer (a_parts, s)
-
-							create {WIKI_EXTERNAL_LINK} w_item.make (a_text.substring (i + 1, p - 1))
-							a_parts.add_element (w_item)
-							w_item.process (Current) -- Check recursion...							
-							w_item := Void
+							if in_items.is_empty then
+								flush_buffer (a_parts, s)
+								create {WIKI_EXTERNAL_LINK} w_item.make (a_text.substring (i, p))
+								a_parts.add_element (w_item)
+								w_item.process (Current) -- Check recursion...							
+								w_item := Void
+							else
+								s.append (a_text.substring (i, p))
+							end
 							i := p
 						else
 							s.extend (c)
 						end
 					end
 				when ']' then
-					if safe_character (a_text, i + 1) = ']' then
-						s.extend (c)
-						i := i + 1
-						s.extend (']')
-
-						if s_link /= Void then
-							check s_is_for_link: s = s_link end
-							s := s_last
-
-							check valid_wiki_link: s_link.count > 4 and then (
-									s_link.item (1) = '[' and s_link.item (2) = '[' and
-									s_link.item (s_link.count - 1) = ']' and s_link.item (s_link.count) = ']'
-								)
-							end
-							s_link := s_link.substring (3, s_link.count - 2)
-							w_item := new_wiki_link (s_link)
-							s_link := Void
-
-							flush_buffer (a_parts, s)
-
-							a_parts.add_element (w_item)
-							w_item.process (Current) -- Check recursion...
-							w_item := Void
-
-							in_item := False
-							s.wipe_out
-						else
-							check not in_item end
-						end
-					else
-						s.extend (c)
+					debug ("wikitext")
+						check no_link_closure: False end
 					end
+					s.extend (c)
 				when '<' then
 					if
 						safe_character (a_text, i + 1) = '!' and then
@@ -158,10 +157,13 @@ feature -- Processing
 					then
 						p := a_text.substring_index ("-->", i + 4)
 						if p > 0 then
-							--| End comment found
-							flush_buffer (a_parts, s)
-
-							a_parts.add_element (create {WIKI_COMMENT}.make (a_text.substring (i + 4, p - 1)))
+							if in_items.is_empty then
+								flush_buffer (a_parts, s)
+								--| End comment found
+								a_parts.add_element (create {WIKI_COMMENT}.make (a_text.substring (i + 4, p - 1)))
+							else
+								s.append (a_text.substring (i, p + 2))
+							end
 							i := p + 2
 						else
 							s.extend (c)
@@ -169,30 +171,62 @@ feature -- Processing
 					elseif safe_character (a_text, i + 1) = '/' then
 						s.extend (c)
 					else
+							-- HTML tag  <tag>
 						p := next_end_of_tag_character (a_text, i + 1)
 						if p > 0 then
 							t := tag_name_from (a_text.substring (i, p))
-							q := next_closing_tag (a_text, t, p + 1)
-							if q > 0 then
-								r := next_end_of_tag_character (a_text, q + 1)
-								if r > 0 then
-									flush_buffer (a_parts, s)
+								-- FIXME: do not ignore params ...
+
+							if a_text [p - 1] = '/' then
+									-- <tag/>
+								q := p
+								r := p
+
+								flush_buffer (a_parts, s)
+								if in_items.is_empty then
 									if t.is_case_insensitive_equal_general ("code") then
-										create {WIKI_CODE} w_item.make (a_text.substring (i, p), a_text.substring (p + 1, q - 1))
+										create {WIKI_CODE} w_item.make (a_text.substring (i, p - 1), "")
 									elseif t.is_case_insensitive_equal_general ("nowiki") then
-										create {WIKI_RAW_STRING} w_item.make (a_text.substring (p + 1, q - 1))
+										create {WIKI_RAW_STRING} w_item.make ("")
 									else
-										create {WIKI_TAG} w_item.make (t, a_text.substring (p + 1, q - 1))
+										create {WIKI_TAG} w_item.make (a_text.substring (i, p - 1), "")
 									end
 									a_parts.add_element (w_item)
 									w_item.process (Current) -- Check recursion...							
 									w_item := Void
-									i := r
+									create s.make_empty
+								else
+									s.append (a_text.substring (i, r))
+								end
+								i := r
+							else
+								q := next_closing_tag (a_text, t, p + 1)
+								if q > 0 then
+									r := next_end_of_tag_character (a_text, q + 1)
+									if r > 0 then
+										flush_buffer (a_parts, s)
+										if in_items.is_empty then
+											if t.is_case_insensitive_equal_general ("code") then
+												create {WIKI_CODE} w_item.make (a_text.substring (i, p), a_text.substring (p + 1, q - 1))
+											elseif t.is_case_insensitive_equal_general ("nowiki") then
+												create {WIKI_RAW_STRING} w_item.make (a_text.substring (p + 1, q - 1))
+											else
+												create {WIKI_TAG} w_item.make (a_text.substring (i, p), a_text.substring (p + 1, q - 1))
+											end
+											a_parts.add_element (w_item)
+											w_item.process (Current) -- Check recursion...							
+											w_item := Void
+											create s.make_empty
+										else
+											s.append (a_text.substring (i, r))
+										end
+										i := r
+									else
+										s.extend (c)
+									end
 								else
 									s.extend (c)
 								end
-							else
-								s.extend (c)
 							end
 						else
 							s.extend (c)
@@ -212,7 +246,7 @@ feature -- Processing
 					--| ''italic'''bold+italic'''italic''end ->2italic2'bold+italic3italic2end23
 					--| For now, we adopt 2) which is more common
 
-					if in_item then
+					if not in_items.is_empty then
 						--| do not process this for now
 						s.extend (c)
 					else
@@ -235,7 +269,7 @@ feature -- Processing
 								p := i + m
 								done := False
 							until
-								p > n or done
+								p > n or q = m
 							loop
 								if a_text.item (p) = '%'' then
 									q := q + 1
@@ -260,9 +294,32 @@ feature -- Processing
 							a_parts.add_element (w_item)
 							w_item.process (Current) -- Check recursion...
 							w_item := Void
-							i := p + m - 1 -- + 1
+							i := p + m
 						else
 							check should_not_occur: False end
+						end
+					end
+				when '&' then
+					if not in_items.is_empty then
+						s.extend (c)
+					else
+						p := i + 1 + 4
+						if
+							safe_character (a_text, i + 1) = '#' and then
+							safe_character (a_text, p) = ';'
+						then
+							flush_buffer (a_parts, s)
+							a_parts.add_element (create {WIKI_ENTITY}.make (a_text.substring (i + 1, p - 1)))
+							i := p
+						else
+							p := a_text.index_of (';', i + 1)
+							if p > 0  and p - i < 10 then
+								flush_buffer (a_parts, s)
+								a_parts.add_element (create {WIKI_ENTITY}.make (a_text.substring (i + 1, p - 1)))
+								i := p
+							else
+								s.extend (c)
+							end
 						end
 					end
 				else
@@ -275,11 +332,27 @@ feature -- Processing
 				s.append (s_link)
 				s_link := Void
 			end
-			check s = s_last end
+				--TODO: find what is the use of s_last, and check the former assertion: check s = s_last end
 			flush_buffer (a_parts, s)
 			check s.is_empty end
 			check s_last.is_empty end
 			check s_link = Void end
+		end
+
+	on_wiki_item_begin_token (a_items: ARRAYED_STACK [TUPLE [position: INTEGER; kind: STRING]]; a_position: INTEGER; a_kind: STRING)
+		do
+			a_items.extend ([a_position, a_kind])
+		end
+
+	on_wiki_item_end_token (a_items: ARRAYED_STACK [TUPLE [position: INTEGER; kind: STRING]]; a_position: INTEGER; a_kind: STRING)
+		do
+			if a_items.is_empty then
+				check False end
+			else
+				if a_items.item.kind.is_case_insensitive_equal (a_kind) then
+					a_items.remove
+				end
+			end
 		end
 
 	flush_buffer (a_parts: WIKI_STRING_LIST; a_buffer: STRING)
@@ -288,94 +361,6 @@ feature -- Processing
 				a_parts.add_raw_string (a_buffer.string)
 				a_buffer.wipe_out
 			end
-		end
-
-	next_closing_template (s: STRING; a_start: INTEGER): INTEGER
-		local
-			i,n: INTEGER
-			v: INTEGER
-		do
-			from
-				i := a_start
-				n := s.count
-			until
-				Result > a_start or i > n
-			loop
-				inspect s[i]
-				when '{' then
-					if safe_character (s, i + 1) = '{' then
-						v := v + 1
-					end
-				when '}' then
-					if safe_character (s, i + 1) = '}' then
-						if v = 0 then
-							Result := i - 1
-						else
-							v := v - 1
-						end
-					end
-				else
-				end
-				i := i + 1
-			end
-		end
-
-	next_end_of_tag_character (s: STRING; a_start: INTEGER): INTEGER
-		local
-			i,n: INTEGER
-			v: INTEGER
-		do
-			from
-				i := a_start
-				n := s.count
-			until
-				Result > a_start or i > n
-			loop
-				inspect s[i]
-				when '<' then
-					v := v + 1
-				when '>' then
-					if v = 0 then
-						Result := i
-					else
-						v := v - 1
-					end
-				else
-				end
-				i := i + 1
-			end
-		end
-
-	next_closing_tag (s: STRING; a_tag_name: READABLE_STRING_8; a_start: INTEGER): INTEGER
-		local
---			i,n,p: INTEGER
---			v: INTEGER
-		do
-			Result := s.substring_index ("</" + a_tag_name + ">", a_start)
-
---			from
---				v := 1
---				i := a_start
---				n := s.count
---			until
---				Result > a_start or i > n
---			loop
---				inspect s[i]
---				when '<' then
---					if s.valid_index (i + 1) and then s[i+1] = '/' then -- closing
---						v := v - 1
---					else
---						v := v + 1
---					end
---					if v = 0 then
---						Result := i
---					else
---						i := next_end_of_tag_character (s, i + 1)
---					end
---				else
---				end
---				i := i + 1
---			end
 		end
 
 	wiki_style_kind (n: INTEGER): INTEGER
@@ -391,58 +376,8 @@ feature -- Processing
 			end
 		end
 
-	new_wiki_link (s: STRING): WIKI_LINK
-		require
-			s_not_empty: s.count > 0
-		local
-			n,b: INTEGER
-			t: STRING
-			l_inlined: BOOLEAN
-
-		do
-			n := s.count
-			if s[1] = ':' then
-				l_inlined := True
-				b := 1
-			end
-			t := s.substring (b + 1, b + 6) --| ("image:").count = 6
-			if     t.is_case_insensitive_equal ("image:") then
-				create {WIKI_IMAGE_LINK} Result.make (s.substring (b + 7, n))
-			elseif t.is_case_insensitive_equal ("category:") then
-				create {WIKI_CATEGORY_LINK} Result.make (s.substring (b + 10, n))
-			elseif t.is_case_insensitive_equal ("media:") then
-				create {WIKI_MEDIA_LINK} Result.make (s.substring (b + 7, n))
-			else
-				create Result.make (s)
-			end
-		end
-
-feature {NONE} -- Implementation
-
-	tag_name_from (s: READABLE_STRING_8): STRING_8
-			-- Tag name from  inside of <...>
-			--| for instance ' abc def="geh"' will return abc
-		local
-			i,n,p: INTEGER
-		do
-			i := s.index_of (' ', 2)
-			n := s.index_of ('%T', 2)
-			if i = 0 then
-				i := n
-			elseif n /= Void then
-				i := i.min (n)
-			end
-			if i > 0 then
-				create Result.make_from_string (s.substring (2, i - 1))
-			else
-				create Result.make_from_string (s.substring (2, s.count - 1))
-			end
-			Result.left_adjust
-			Result.right_adjust
-		end
-
 note
-	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

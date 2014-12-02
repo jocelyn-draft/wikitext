@@ -1,8 +1,8 @@
 note
 	description: "Summary description for {WIKI_LIST_FACTORY}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
+	revision: "$Revision: 96211 $"
 
 class
 	WIKI_LIST_FACTORY
@@ -16,7 +16,7 @@ feature -- Access
 		local
 			t: STRING
 			c: CHARACTER
-			n,p: INTEGER
+			n: INTEGER
 			v: NATURAL_8
 		do
 			if s = Void or else s.is_empty then
@@ -35,7 +35,11 @@ feature -- Access
 				loop
 					t.append_character (c)
 					v := v + 1
-					c := s.item (v)
+					if s.valid_index (v) then
+						c := s.item (v)
+					else
+						c := '%U'
+					end
 				end
 				check t.count = v - 1 end
 				inspect t.item (t.count)
@@ -51,7 +55,7 @@ feature -- Access
 		end
 
 note
-	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat

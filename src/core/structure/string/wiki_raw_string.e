@@ -1,14 +1,19 @@
 note
 	description: "Summary description for {WIKI_RAW_STRING}."
 	author: ""
-	date: "$Date$"
-	revision: "$Revision$"
+	date: "$Date: 2014-12-02 11:11:23 +0100 (mar., 02 déc. 2014) $"
+	revision: "$Revision: 96211 $"
 
 class
 	WIKI_RAW_STRING
 
 inherit
 	WIKI_STRING_ITEM
+		redefine
+			is_whitespace
+		end
+
+	DEBUG_OUTPUT
 
 create
 	make
@@ -24,6 +29,20 @@ feature -- Access
 
 	text: STRING
 
+feature -- Status report
+
+	is_empty: BOOLEAN
+			-- Is empty text?
+		do
+			Result := text.is_empty
+		end
+
+	is_whitespace: BOOLEAN
+			-- <Precursor>
+		do
+			Result := text.is_whitespace
+		end
+
 feature -- Visitor
 
 	process (a_visitor: WIKI_VISITOR)
@@ -31,8 +50,16 @@ feature -- Visitor
 			a_visitor.visit_raw_string (Current)
 		end
 
+feature -- Status report
+
+	debug_output: STRING
+			-- String that should be displayed in debugger to represent `Current'.
+		do
+			Result := text
+		end
+
 note
-	copyright: "2011-2013, Jocelyn Fiat and Eiffel Software"
+	copyright: "2011-2014, Jocelyn Fiat and Eiffel Software"
 	license: "Eiffel Forum License v2 (see http://www.eiffel.com/licensing/forum.txt)"
 	source: "[
 			Jocelyn Fiat
